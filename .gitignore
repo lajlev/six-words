@@ -2,7 +2,7 @@ node_modules/
 .firebase/
 *.tsbuildinfo
 dist/
-lib/
+functions/lib/
 shared/dist/
 functions/src/shared/
 .emulator-data/
