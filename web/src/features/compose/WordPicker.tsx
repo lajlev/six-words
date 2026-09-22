@@ -1,18 +1,20 @@
 import { useMemo } from "react";
-import { shuffledWords, type Family } from "@shared/wheel";
+import { shuffledWords, type Family, type Language } from "@shared/wheel";
 import { Sheet } from "../../components/Sheet";
 
 export function WordPicker({
+  language,
   open,
   onClose,
   onPick
 }: {
+  language: Language;
   open: boolean;
   onClose: () => void;
   onPick: (word: string, family: Family) => void;
 }) {
   // Freshly shuffled every time the picker opens, per spec.
-  const words = useMemo(() => shuffledWords(), [open]);
+  const words = useMemo(() => shuffledWords(language), [open, language]);
 
   return (
     <Sheet open={open} title="Choose a word" onClose={onClose}>

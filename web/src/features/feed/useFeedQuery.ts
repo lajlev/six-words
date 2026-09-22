@@ -10,7 +10,7 @@ import {
   where
 } from "firebase/firestore";
 import { db } from "../../lib/firebase";
-import type { Family } from "@shared/wheel";
+import type { Family, Language } from "@shared/wheel";
 import type { FeedTab, Story, StoryDoc } from "../../lib/types";
 
 const PAGE_SIZE = 10;
@@ -19,7 +19,7 @@ function toStory(snap: QueryDocumentSnapshot): Story {
   return { id: snap.id, ...(snap.data() as StoryDoc) };
 }
 
-export function useFeedQuery(tab: FeedTab, family?: Family) {
+export function useFeedQuery(tab: FeedTab, family?: Family, language?: Language) {
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
@@ -42,13 +42,14 @@ export function useFeedQuery(tab: FeedTab, family?: Family) {
     wrapped.current = false;
     void fetchPage(gen);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, family]);
+  }, [tab, family, language]);
 
   async function fetchNewOrTop(gen: number) {
     const dir = tab === "new" ? "createdAt" : "likeCount";
     const constraints = [
       where("status", "==", "published"),
       ...(family ? [where("family", "==", family)] : []),
+      ...(language ? [where("language", "==", language)] : []),
       orderBy(dir, "desc"),
       ...(cursorDoc.current ? [startAfter(cursorDoc.current)] : []),
       limit(PAGE_SIZE)
@@ -69,7 +70,8 @@ export function useFeedQuery(tab: FeedTab, family?: Family) {
     for (let iterations = 0; iterations < 3 && remaining > 0; iterations++) {
       const base = [
         where("status", "==", "published"),
-        ...(family ? [where("family", "==", family)] : [])
+        ...(family ? [where("family", "==", family)] : []),
+        ...(language ? [where("language", "==", language)] : [])
       ];
       const constraints = wrapped.current
         ? [...base, where("random", "<", seed.current), orderBy("random", "asc"), limit(remaining)]

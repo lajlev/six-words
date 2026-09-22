@@ -144,6 +144,39 @@ see that script's comment for why it's wired to both targets.)
 npm run seed:prod           # asks for a typed "yes" confirmation before writing
 ```
 
+### 6. Backfill `language` on pre-existing stories (once, if upgrading from before languages existed)
+
+Firestore excludes documents missing a field from an equality filter, so any
+story from before the language field existed needs a one-time backfill
+(`language: "en"`) or it silently disappears from language-filtered queries:
+
+```bash
+npm run migrate:add-language:prod   # asks for a typed "yes" confirmation before writing
+```
+
+## Languages
+
+The app supports English and Danish as parallel content languages (not a
+translated UI — see "Languages" under Known limitations for the exact split).
+
+- `shared/wheel.ts` holds one wheel per language (`WHEEL_EN`, `WHEEL_DA`),
+  sharing the same 6 families and colors. The Danish wheel is original
+  idiomatic Danish emotion vocabulary chosen per family — not a literal
+  translation of the English word list — with its own curated `forms[]`
+  per word for the same inflection-matching behavior as English.
+- Every story has a `language: "en" | "da"` field. The composer has an
+  explicit language toggle that scopes which wheel the shuffle/word-picker
+  draw from; the feed has a language filter (`/en`, `/da`, or unprefixed for
+  both) alongside the existing family filter.
+- `scripts/seedDataDanish.ts` holds 207 original Danish stories (not
+  translations of the English set) with the same "twist reveal in the
+  comments" format, authored to fit the Danish wheel's words.
+- To add a third language: add a `WHEEL_XX` entry + word-forms in
+  `shared/wheel.ts`, extend `Language`/`LANGUAGES`, add its `wordFamilyXx()`
+  map to `firestore.rules` (kept in sync by hand, same as the existing two),
+  add the composer/feed route entries in `App.tsx`, and add the 3
+  language-dimension indexes per order field to `firestore.indexes.json`.
+
 ## Continuous deployment (GitHub Actions)
 
 `.github/workflows/deploy.yml` runs the test suite, then deploys Firestore
@@ -204,6 +237,14 @@ one-time GCP configuration than fits here.)
   wheel word (e.g. "jealousy" counts for "Jealous") rather than exact-match
   only. If a form is missing for some word, add it there — both the composer
   and `onStoryCreate` read from the same list.
+- **Languages**: content is bilingual (English/Danish), but the interface
+  itself is not localized — buttons, nav, captions ("Solve it in six words"),
+  and composer validation errors stay English regardless of which language a
+  story or the composer is set to; family names (Happy/Anger/etc.) also stay
+  English everywhere. Only the feeling word and story text are Danish for
+  Danish content. The Danish wheel's forms were authored by Claude, not a
+  native speaker — worth a spot-check, especially the less common
+  inflections.
 - **Counter idempotency**: Cloud Functions v2 (Eventarc) delivers at-least-once
   — the same event can be redelivered and, without care, double-count a
   counter. This bit us for real during this project's first-ever 2nd-gen

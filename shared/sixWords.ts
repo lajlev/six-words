@@ -1,4 +1,4 @@
-import { findWord } from "./wheel.js";
+import { findWord, type Language } from "./wheel.js";
 
 export type ValidateResult = { ok: true } | { ok: false; reason: string };
 
@@ -38,7 +38,7 @@ function isJunkToken(token: string): string | null {
   return null;
 }
 
-export function validateStory(text: string, word: string): ValidateResult {
+export function validateStory(text: string, word: string, language: Language): ValidateResult {
   const normalized = normalizeText(text);
 
   if (normalized.length > MAX_CHARS) {
@@ -60,7 +60,7 @@ export function validateStory(text: string, word: string): ValidateResult {
     return { ok: false, reason: `Your story has ${tokens.length} words. Cut ${-diff}.` };
   }
 
-  const wheelWord = findWord(word);
+  const wheelWord = findWord(word, language);
   if (!wheelWord) {
     return { ok: false, reason: "Choose a feeling word from the wheel." };
   }

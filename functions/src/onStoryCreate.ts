@@ -9,6 +9,7 @@ interface StoryData {
   text: string;
   word: string;
   authorId: string;
+  language: "en" | "da";
 }
 
 export const onStoryCreate = onDocumentCreated({ document: "stories/{storyId}", region: "europe-west1" }, async (event) => {
@@ -24,7 +25,7 @@ export const onStoryCreate = onDocumentCreated({ document: "stories/{storyId}", 
     }
   }
 
-  const result = validateStory(story.text, story.word);
+  const result = validateStory(story.text, story.word, story.language);
   if (!result.ok) {
     await snap.ref.update({ status: "hidden", hiddenReason: "invalid" });
     return;

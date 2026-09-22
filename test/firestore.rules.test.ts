@@ -16,6 +16,7 @@ const validStory = {
   text: "Jealous twin swapped the birthday candles.",
   word: "Jealous",
   family: "Anger",
+  language: "en",
   authorId: "alice",
   authorHandle: "alice",
   createdAt: Date.now(),
@@ -129,6 +130,35 @@ describe("stories: create", () => {
   it("allows a signed-in author to create a valid story", async () => {
     const alice = testEnv.authenticatedContext("alice").firestore();
     await assertSucceeds(setDoc(doc(alice, "stories", "new1"), { ...validStory, authorId: "alice" }));
+  });
+
+  it("allows a valid Danish story against the Danish wheel", async () => {
+    const alice = testEnv.authenticatedContext("alice").firestore();
+    await assertSucceeds(setDoc(doc(alice, "stories", "new-da1"), {
+      ...validStory,
+      authorId: "alice",
+      text: "Glad hund fandt sin gamle bold.",
+      word: "Glad",
+      family: "Happy",
+      language: "da",
+      textNormalized: "glad hund fandt sin gamle bold."
+    }));
+  });
+
+  it("denies an unrecognized language", async () => {
+    const alice = testEnv.authenticatedContext("alice").firestore();
+    await assertFails(setDoc(doc(alice, "stories", "new-badlang"), { ...validStory, authorId: "alice", language: "de" }));
+  });
+
+  it("denies a Danish word validated against the English map (family/language mismatch)", async () => {
+    const alice = testEnv.authenticatedContext("alice").firestore();
+    await assertFails(setDoc(doc(alice, "stories", "new-mismatch"), {
+      ...validStory,
+      authorId: "alice",
+      word: "Glad",
+      family: "Happy",
+      language: "en"
+    }));
   });
 
   it("denies creating a story while signed out", async () => {

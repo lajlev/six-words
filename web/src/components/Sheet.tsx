@@ -21,18 +21,32 @@ export function Sheet({ open, title, onClose, children }: SheetProps) {
     }
   }, [open]);
 
+  // Blur before onClose (not after): onClose flips `open` to false, which
+  // sets aria-hidden="true" on this section on the next render. If the close
+  // button (or anything else in here) still has focus at that point, Chrome
+  // force-blurs it and logs "Blocked aria-hidden on an element because its
+  // descendant retained focus" -- and focus is left in a broken state
+  // (nothing focused, Escape/Tab handling gets flaky) rather than cleanly
+  // restored to lastFocus. Moving focus out first avoids the conflict
+  // entirely instead of reacting to it after the fact.
+  function close() {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    onClose();
+  }
+
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") close();
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, onClose]);
 
   return (
     <>
-      <div className={`scrim${open ? " open" : ""}`} onClick={onClose} />
+      <div className={`scrim${open ? " open" : ""}`} onClick={close} />
       <section
         className={`sheet${open ? " open" : ""}`}
         role="dialog"
@@ -42,7 +56,7 @@ export function Sheet({ open, title, onClose, children }: SheetProps) {
       >
         <div className="sheet-head">
           <span>{title}</span>
-          <button ref={closeRef} className="close" aria-label="Close" onClick={onClose}>
+          <button ref={closeRef} className="close" aria-label="Close" onClick={close}>
             ×
           </button>
         </div>

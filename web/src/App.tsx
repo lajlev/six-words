@@ -20,6 +20,10 @@ export default function App() {
         <Routes>
           <Route path="/" element={<FeedPage />} />
           <Route path="/f/:family" element={<FeedPage />} />
+          <Route path="/en" element={<FeedPage />} />
+          <Route path="/en/f/:family" element={<FeedPage />} />
+          <Route path="/da" element={<FeedPage />} />
+          <Route path="/da/f/:family" element={<FeedPage />} />
           <Route path="/s/:storyId" element={<FeedPage />} />
           <Route path="/new" element={<ComposePage />} />
           <Route path="/u/:handle" element={<ProfilePage />} />

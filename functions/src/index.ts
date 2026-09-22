@@ -15,3 +15,4 @@ export { onCommentWrite } from "./onCommentWrite.js";
 export { onCommentLikeWrite } from "./onCommentLikeWrite.js";
 export { storyPage } from "./storyPage.js";
 export { ogImage } from "./ogImage.js";
+export { sendReportEmail } from "./sendReportEmail.js";

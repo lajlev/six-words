@@ -1,4 +1,4 @@
-import type { Family } from "@shared/wheel";
+import type { Family, Language } from "@shared/wheel";
 
 export interface UserDoc {
   handle: string;
@@ -12,6 +12,7 @@ export interface StoryDoc {
   text: string;
   word: string;
   family: Family;
+  language: Language;
   authorId: string;
   authorHandle: string;
   createdAt: number;

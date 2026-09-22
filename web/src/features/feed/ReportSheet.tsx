@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { addDoc, collection } from "firebase/firestore";
-import { db } from "../../lib/firebase";
+import { httpsCallable } from "firebase/functions";
+import { db, functions } from "../../lib/firebase";
 import { Sheet } from "../../components/Sheet";
 import { useAuth } from "../auth/useAuth";
 import type { Story } from "../../lib/types";
@@ -26,6 +27,9 @@ export function ReportSheet({ story, open, onClose, onReported }: {
         reason,
         createdAt: Date.now()
       });
+      // Best-effort: the report itself is already recorded above regardless
+      // of whether this notification succeeds.
+      httpsCallable(functions, "sendReportEmail")({ storyId: story.id, reason }).catch(() => {});
       onReported();
       onClose();
     } finally {

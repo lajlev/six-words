@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { addDoc, collection } from "firebase/firestore";
 import { db } from "../../lib/firebase";
-import { familyColor, findWord, randomWord } from "@shared/wheel";
+import { LANGUAGES, familyColor, findWord, randomWord, type Language } from "@shared/wheel";
 import { normalizeText, tokenize, validateStory } from "@shared/sixWords";
 import { ShuffleIcon } from "../../components/icons";
 import { useAuth } from "../auth/useAuth";
@@ -10,11 +10,24 @@ import { AuthFlow } from "../auth/AuthFlow";
 import { WordPicker } from "./WordPicker";
 
 const MAX_CHARS = 120;
+const LANGUAGE_LABEL: Record<Language, string> = { en: "English", da: "Dansk" };
+const LAST_LANGUAGE_KEY = "sixwords-compose-language";
+
+function initialLanguage(): Language {
+  try {
+    const saved = window.localStorage.getItem(LAST_LANGUAGE_KEY);
+    if (saved === "en" || saved === "da") return saved;
+  } catch {
+    // ignore -- localStorage may be unavailable
+  }
+  return "en";
+}
 
 export default function ComposePage() {
   const { user, profile, needsHandle } = useAuth();
   const navigate = useNavigate();
-  const [{ word, family }, setWord] = useState(() => randomWord());
+  const [language, setLanguage] = useState<Language>(initialLanguage);
+  const [{ word, family }, setWord] = useState(() => randomWord(initialLanguage()));
   const [text, setText] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -23,8 +36,20 @@ export default function ComposePage() {
 
   const normalized = normalizeText(text);
   const tokens = useMemo(() => tokenize(text), [text]);
-  const result = useMemo(() => validateStory(text, word), [text, word]);
-  const wordForms = useMemo(() => new Set(findWord(word)?.forms ?? []), [word]);
+  const result = useMemo(() => validateStory(text, word, language), [text, word, language]);
+  const wordForms = useMemo(() => new Set(findWord(word, language)?.forms ?? []), [word, language]);
+
+  function switchLanguage(lang: Language) {
+    if (lang === language) return;
+    setLanguage(lang);
+    setWord(randomWord(lang));
+    setText("");
+    try {
+      window.localStorage.setItem(LAST_LANGUAGE_KEY, lang);
+    } catch {
+      // ignore
+    }
+  }
 
   async function submit() {
     if (!user || !profile || result.ok !== true) return;
@@ -35,6 +60,7 @@ export default function ComposePage() {
         text: normalized,
         word,
         family,
+        language,
         authorId: user.uid,
         authorHandle: profile.handle,
         createdAt: Date.now(),
@@ -71,11 +97,23 @@ export default function ComposePage() {
         <button className="compose-back" onClick={() => navigate(-1)}>
           Close
         </button>
+        <div className="chips" style={{ padding: 0 }} role="tablist" aria-label="Story language">
+          {LANGUAGES.map((l) => (
+            <button
+              key={l}
+              className="chip lang-chip"
+              aria-pressed={language === l}
+              onClick={() => switchLanguage(l)}
+            >
+              {LANGUAGE_LABEL[l]}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="compose-word-row" style={{ "--c": color } as React.CSSProperties}>
         <h1 className="compose-word">{word}</h1>
         <div className="compose-actions">
-          <button className="iconbtn" onClick={() => setWord(randomWord(word))} aria-label="Shuffle word">
+          <button className="iconbtn" onClick={() => setWord(randomWord(language, word))} aria-label="Shuffle word">
             <ShuffleIcon />
           </button>
           <button className="iconbtn" onClick={() => setPickerOpen(true)}>
@@ -125,6 +163,7 @@ export default function ComposePage() {
       </div>
 
       <WordPicker
+        language={language}
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
         onPick={(w, f) => setWord({ word: w, family: f })}

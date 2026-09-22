@@ -8,6 +8,8 @@
     "test:watch": "vitest",
     "seed": "tsx scripts/seed.ts",
     "seed:prod": "tsx scripts/seed.ts --prod",
+    "migrate:add-language": "tsx scripts/migrateAddLanguage.ts",
+    "migrate:add-language:prod": "tsx scripts/migrateAddLanguage.ts --prod",
     "emulators": "firebase emulators:start --import=.emulator-data --export-on-exit=.emulator-data",
     "emulators:exec:test": "firebase emulators:exec --only firestore,auth \"vitest run test\"",
     "emulators:seed": "firebase emulators:exec --only firestore,auth --export-on-exit=.emulator-data \"npm run seed\""

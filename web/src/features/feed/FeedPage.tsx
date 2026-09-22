@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { useToast } from "../../components/Toast";
-import type { Family } from "@shared/wheel";
+import type { Family, Language } from "@shared/wheel";
 import type { FeedTab, Story, StoryDoc } from "../../lib/types";
 import { useFeedQuery } from "./useFeedQuery";
 import { StoryCard } from "./StoryCard";
@@ -11,12 +11,25 @@ import { TopBar } from "./TopBar";
 import { CommentSheet } from "../comments/CommentSheet";
 import { ReportSheet } from "./ReportSheet";
 
+function pathFor(language: Language | undefined, family: Family | undefined): string {
+  const prefix = language ? `/${language}` : "";
+  if (family) return `${prefix}/f/${family}`;
+  return prefix || "/";
+}
+
 export default function FeedPage() {
   const { family, storyId } = useParams<{ family?: string; storyId?: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const toast = useToast();
   const [tab, setTab] = useState<FeedTab>("forYou");
-  const { stories, loading, hasMore, loadMore } = useFeedQuery(tab, family as Family | undefined);
+
+  const language = useMemo<Language | undefined>(() => {
+    const seg = location.pathname.split("/")[1];
+    return seg === "en" || seg === "da" ? seg : undefined;
+  }, [location.pathname]);
+
+  const { stories, loading, hasMore, loadMore } = useFeedQuery(tab, family as Family | undefined, language);
   const [pinnedStory, setPinnedStory] = useState<Story | null>(null);
   const feedRef = useRef<HTMLElement>(null);
   const [commentStory, setCommentStory] = useState<Story | null>(null);
@@ -74,7 +87,9 @@ export default function FeedPage() {
     <div className="app">
       <TopBar
         family={family as Family | undefined}
-        onFamily={(f) => navigate(f ? `/f/${f}` : "/")}
+        onFamily={(f) => navigate(pathFor(language, f))}
+        language={language}
+        onLanguage={(l) => navigate(pathFor(l, family as Family | undefined))}
         tab={tab}
         onTab={setTab}
       />

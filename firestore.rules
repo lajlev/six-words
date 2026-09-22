@@ -3,10 +3,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Keep in sync with shared/wheel.ts ALL_WORDS. This is the rules-side
-    // "word is on the wheel, and belongs to this family" check from spec §8;
-    // onStoryCreate re-validates with the real shared/wheel.ts as the final gate.
-    function wordFamily() {
+    // Keep in sync with shared/wheel.ts's per-language word lists. This is the
+    // rules-side "word is on the wheel, and belongs to this family" check
+    // from spec §8; onStoryCreate re-validates with the real shared/wheel.ts
+    // as the final gate.
+    function wordFamilyEn() {
       return {
         'Liberated': 'Happy', 'Ecstatic': 'Happy', 'Amused': 'Happy', 'Inquisitive': 'Happy',
         'Important': 'Happy', 'Confident': 'Happy', 'Respected': 'Happy', 'Fulfilled': 'Happy',
@@ -27,6 +28,33 @@ service cloud.firestore {
         'Powerless': 'Sad', 'Vulnerable': 'Sad', 'Empty': 'Sad', 'Isolated': 'Sad',
         'Abandoned': 'Sad', 'Apathetic': 'Sad', 'Indifferent': 'Sad'
       };
+    }
+
+    function wordFamilyDa() {
+      return {
+        'Glad': 'Happy', 'Lettet': 'Happy', 'Stolt': 'Happy', 'Forelsket': 'Happy',
+        'Taknemmelig': 'Happy', 'Tilfreds': 'Happy', 'Opstemt': 'Happy', 'Henrykt': 'Happy',
+        'Nysgerrig': 'Happy', 'Håbefuld': 'Happy', 'Legesyg': 'Happy', 'Inspireret': 'Happy',
+        'Rørt': 'Happy', 'Betaget': 'Happy', 'Fri': 'Happy', 'Elsket': 'Happy',
+        'Chokeret': 'Surprise', 'Målløs': 'Surprise', 'Desillusioneret': 'Surprise', 'Forvirret': 'Surprise',
+        'Ærefrygt': 'Surprise', 'Ivrig': 'Surprise', 'Energisk': 'Surprise', 'Paf': 'Surprise',
+        'Latterliggjort': 'Fear', 'Nedgjort': 'Fear', 'Fremmedgjort': 'Fear', 'Utilstrækkelig': 'Fear',
+        'Ubetydelig': 'Fear', 'Værdiløs': 'Fear', 'Underlegen': 'Fear', 'Bekymret': 'Fear',
+        'Overvældet': 'Fear', 'Bange': 'Fear', 'Rædselsslagen': 'Fear',
+        'Flov': 'Anger', 'Knust': 'Anger', 'Usikker': 'Anger', 'Skinsyg': 'Anger',
+        'Bitter': 'Anger', 'Krænket': 'Anger', 'Rasende': 'Anger', 'Ophidset': 'Anger',
+        'Provokeret': 'Anger', 'Fjendtlig': 'Anger', 'Oprevet': 'Anger', 'Irriteret': 'Anger',
+        'Tilbagetrukket': 'Anger', 'Mistænksom': 'Anger', 'Skeptisk': 'Anger', 'Sarkastisk': 'Anger',
+        'Dømmende': 'Disgust', 'Forfærdet': 'Disgust', 'Frastødt': 'Disgust', 'Kvalm': 'Disgust',
+        'Afskyelig': 'Disgust', 'Rystet': 'Disgust', 'Tøvende': 'Disgust',
+        'Angerfuld': 'Sad', 'Skamfuld': 'Sad', 'Overset': 'Sad', 'Udnyttet': 'Sad',
+        'Magtesløs': 'Sad', 'Sårbar': 'Sad', 'Tom': 'Sad', 'Isoleret': 'Sad',
+        'Forladt': 'Sad', 'Apatisk': 'Sad', 'Ligegyldig': 'Sad'
+      };
+    }
+
+    function wordFamily(language) {
+      return language == 'da' ? wordFamilyDa() : wordFamilyEn();
     }
 
     function isSignedIn() {
@@ -69,8 +97,9 @@ service cloud.firestore {
 
       allow create: if isSignedIn()
         && request.resource.data.authorId == request.auth.uid
-        && request.resource.data.word in wordFamily()
-        && request.resource.data.family == wordFamily()[request.resource.data.word]
+        && request.resource.data.language in ['en', 'da']
+        && request.resource.data.word in wordFamily(request.resource.data.language)
+        && request.resource.data.family == wordFamily(request.resource.data.language)[request.resource.data.word]
         && request.resource.data.status == 'published'
         && request.resource.data.likeCount == 0
         && request.resource.data.commentCount == 0

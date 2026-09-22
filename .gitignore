@@ -1,5 +1,6 @@
 node_modules/
 .firebase/
+.claude/
 *.tsbuildinfo
 dist/
 functions/lib/

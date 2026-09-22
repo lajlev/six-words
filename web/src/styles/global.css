@@ -53,6 +53,12 @@ a { color: inherit; }
   background: var(--c, #fff); box-shadow: 0 0 10px var(--c, #fff);
 }
 .chip:focus-visible, .act:focus-visible, .segbtn:focus-visible { outline: 2px solid #fff; outline-offset: 3px; border-radius: 6px; }
+.lang-chip {
+  border: 1px solid var(--faint); border-radius: 999px; padding: 4px 10px; font-size: 13px;
+}
+.lang-chip[aria-pressed="true"] { border-color: #fff; background: #fff; color: #000; }
+.lang-chip[aria-pressed="true"]::after { display: none; }
+.chip-divider { flex: none; width: 1px; align-self: stretch; background: var(--faint); margin: 4px 2px; }
 
 .segmented { display: flex; gap: 6px; padding: 0 18px; }
 .segbtn {
