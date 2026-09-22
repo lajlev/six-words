@@ -124,5 +124,9 @@ service cloud.firestore {
     match /rateLimits/{uid} {
       allow read, write: if false;
     }
+
+    match /processedEvents/{eventId} {
+      allow read, write: if false;
+    }
   }
 }

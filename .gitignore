@@ -1,8 +1,10 @@
 node_modules/
+.firebase/
 *.tsbuildinfo
 dist/
 lib/
 shared/dist/
+functions/src/shared/
 .emulator-data/
 firebase-debug.log
 firebase-debug.*.log

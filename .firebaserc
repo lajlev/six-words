@@ -5,8 +5,11 @@
   "targets": {
     "lillefar-com": {
       "hosting": {
-        "sixwords": ["sixwords-lillefar"]
+        "sixwords": [
+          "sixwords-lillefar"
+        ]
       }
     }
-  }
+  },
+  "etags": {}
 }

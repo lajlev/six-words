@@ -1,6 +1,6 @@
 import { onDocumentDeleted } from "firebase-functions/v2/firestore";
-import { FieldValue } from "firebase-admin/firestore";
 import { db } from "./admin.js";
+import { incrementOnce } from "./idempotent.js";
 
 async function deleteAll(ref: FirebaseFirestore.CollectionReference): Promise<void> {
   const snap = await ref.get();
@@ -10,7 +10,7 @@ async function deleteAll(ref: FirebaseFirestore.CollectionReference): Promise<vo
   await batch.commit();
 }
 
-export const onStoryDelete = onDocumentDeleted("stories/{storyId}", async (event) => {
+export const onStoryDelete = onDocumentDeleted({ document: "stories/{storyId}", region: "europe-west1" }, async (event) => {
   const snap = event.data;
   if (!snap) return;
   const story = snap.data() as { authorId: string };
@@ -23,5 +23,5 @@ export const onStoryDelete = onDocumentDeleted("stories/{storyId}", async (event
   await deleteAll(storyRef.collection("comments"));
   await deleteAll(storyRef.collection("likes"));
 
-  await db.doc(`users/${story.authorId}`).update({ storyCount: FieldValue.increment(-1) });
+  await incrementOnce(event.id, db.doc(`users/${story.authorId}`), "storyCount", -1);
 });

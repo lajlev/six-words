@@ -98,13 +98,16 @@ export const ogImage = onRequest({ region: "europe-west1" }, async (req, res) =>
   const match = req.path.match(/^\/og\/([^/.]+)\.png$/);
   const storyId = match?.[1];
   if (!storyId) {
-    res.status(400).send("Bad request");
+    res.set("Cache-Control", "no-store").status(400).send("Bad request");
     return;
   }
 
   const snap = await db.doc(`stories/${storyId}`).get();
   if (!snap.exists || (snap.data() as StoryData).status !== "published") {
-    res.status(404).send("Not found");
+    // no-store: Hosting's CDN defaults to caching dynamic responses for ~10min
+    // otherwise, which would keep serving a stale 404 for a story that was
+    // hidden and later republished (or was momentarily not-yet-readable).
+    res.set("Cache-Control", "no-store").status(404).send("Not found");
     return;
   }
 

@@ -6,7 +6,7 @@
   "main": "lib/index.js",
   "engines": { "node": "20" },
   "scripts": {
-    "build": "npm --prefix ../shared install && npm --prefix ../shared run build && tsc",
+    "build": "mkdir -p src/shared && cp ../shared/wheel.ts ../shared/sixWords.ts src/shared/ && tsc",
     "build:watch": "tsc --watch",
     "serve": "npm run build && firebase emulators:start --only functions",
     "test": "vitest run"

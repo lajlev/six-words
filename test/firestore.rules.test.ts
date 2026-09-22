@@ -289,3 +289,11 @@ describe("rateLimits", () => {
     await assertFails(getDoc(doc(alice, "rateLimits", "alice")));
   });
 });
+
+describe("processedEvents", () => {
+  it("denies all client access", async () => {
+    const alice = testEnv.authenticatedContext("alice").firestore();
+    await assertFails(setDoc(doc(alice, "processedEvents", "evt1"), { processedAt: Date.now() }));
+    await assertFails(getDoc(doc(alice, "processedEvents", "evt1")));
+  });
+});

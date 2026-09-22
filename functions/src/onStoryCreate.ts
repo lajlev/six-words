@@ -1,8 +1,9 @@
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
-import { FieldValue } from "firebase-admin/firestore";
-import { normalizeText, validateStory } from "../../shared/dist/sixWords.js";
+import { normalizeText, validateStory } from "./shared/sixWords.js";
 import { db } from "./admin.js";
 import { checkAndRecordRateLimit } from "./rateLimit.js";
+import { isSeedAuthor } from "./seedAuthors.js";
+import { incrementOnce } from "./idempotent.js";
 
 interface StoryData {
   text: string;
@@ -10,15 +11,17 @@ interface StoryData {
   authorId: string;
 }
 
-export const onStoryCreate = onDocumentCreated("stories/{storyId}", async (event) => {
+export const onStoryCreate = onDocumentCreated({ document: "stories/{storyId}", region: "europe-west1" }, async (event) => {
   const snap = event.data;
   if (!snap) return;
   const story = snap.data() as StoryData;
 
-  const overLimit = await checkAndRecordRateLimit(story.authorId, "story");
-  if (overLimit) {
-    await snap.ref.update({ status: "hidden", hiddenReason: "rate_limited" });
-    return;
+  if (!isSeedAuthor(story.authorId)) {
+    const overLimit = await checkAndRecordRateLimit(story.authorId, "story");
+    if (overLimit) {
+      await snap.ref.update({ status: "hidden", hiddenReason: "rate_limited" });
+      return;
+    }
   }
 
   const result = validateStory(story.text, story.word);
@@ -39,5 +42,5 @@ export const onStoryCreate = onDocumentCreated("stories/{storyId}", async (event
     return;
   }
 
-  await db.doc(`users/${story.authorId}`).update({ storyCount: FieldValue.increment(1) });
+  await incrementOnce(event.id, db.doc(`users/${story.authorId}`), "storyCount", 1);
 });

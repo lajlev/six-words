@@ -42,7 +42,7 @@ export const storyPage = onRequest({ region: "europe-west1" }, async (req, res) 
   const storyId = match?.[1];
 
   if (!storyId) {
-    res.set("Content-Type", "text/html; charset=utf-8").status(200).send(template);
+    res.set("Content-Type", "text/html; charset=utf-8").set("Cache-Control", "no-store").status(200).send(template);
     return;
   }
 
@@ -50,7 +50,9 @@ export const storyPage = onRequest({ region: "europe-west1" }, async (req, res) 
   const origin = `${req.protocol}://${req.get("host")}`;
 
   if (!snap.exists || (snap.data() as StoryData).status !== "published") {
-    res.set("Content-Type", "text/html; charset=utf-8").status(200).send(template);
+    // no-store here too: otherwise Hosting's CDN default (~10min) would keep
+    // serving the generic-title fallback for a story that just became valid.
+    res.set("Content-Type", "text/html; charset=utf-8").set("Cache-Control", "no-store").status(200).send(template);
     return;
   }
 

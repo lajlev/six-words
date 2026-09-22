@@ -28,8 +28,13 @@ on macOS, then add it to `PATH`).
 npm install                 # root deps (vitest, firebase-tools, tsx, firebase-admin)
 npm --prefix web install
 npm --prefix functions install
-npm --prefix shared install
 ```
+
+`/shared` has no dependencies of its own (plain TS, no `package.json`) — `web`
+imports it directly as source via a Vite alias, and `functions`' build copies
+`wheel.ts`/`sixWords.ts` into `functions/src/shared/` before compiling, so
+both stay self-contained and the deployed Functions package doesn't reach
+outside its own directory (Cloud Functions only uploads `functions/`).
 
 Start the emulators (Firestore, Auth, Functions, Hosting) with persistence across restarts:
 
@@ -123,7 +128,6 @@ if it doesn't exist yet: Console → Add app → Web).
 ### 4. Deploy
 
 ```bash
-npm run build --prefix shared        # not strictly needed standalone; functions' build does this too
 firebase deploy --only firestore:rules,firestore:indexes
 firebase deploy --only functions
 firebase deploy --only hosting:sixwords
@@ -200,3 +204,17 @@ one-time GCP configuration than fits here.)
   wheel word (e.g. "jealousy" counts for "Jealous") rather than exact-match
   only. If a form is missing for some word, add it there — both the composer
   and `onStoryCreate` read from the same list.
+- **Counter idempotency**: Cloud Functions v2 (Eventarc) delivers at-least-once
+  — the same event can be redelivered and, without care, double-count a
+  counter. This bit us for real during this project's first-ever 2nd-gen
+  deploy (a burst of retries during initial Eventarc provisioning
+  double-counted `storyCount`/`commentCount` while seeding). Every counter
+  mutation now goes through `functions/src/idempotent.ts`'s `incrementOnce`,
+  which guards each increment with a `processedEvents/{event.id}` marker
+  written atomically alongside it, so a redelivered event is a no-op.
+- **Seeding a live project**: `onStoryCreate`/`onCommentWrite` are live the
+  moment functions are deployed, so a 207-story `seed:prod` burst from one
+  account would otherwise blow through the 10/hour rate limit. The known seed
+  identities (`sixwords-system`, `seed-*`) are exempt — see
+  `functions/src/seedAuthors.ts`. Keep that prefix in sync with
+  `scripts/seed.ts` if either changes.
