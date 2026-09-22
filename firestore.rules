@@ -1,0 +1,128 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Keep in sync with shared/wheel.ts ALL_WORDS. This is the rules-side
+    // "word is on the wheel, and belongs to this family" check from spec §8;
+    // onStoryCreate re-validates with the real shared/wheel.ts as the final gate.
+    function wordFamily() {
+      return {
+        'Liberated': 'Happy', 'Ecstatic': 'Happy', 'Amused': 'Happy', 'Inquisitive': 'Happy',
+        'Important': 'Happy', 'Confident': 'Happy', 'Respected': 'Happy', 'Fulfilled': 'Happy',
+        'Courageous': 'Happy', 'Provocative': 'Happy', 'Loving': 'Happy', 'Hopeful': 'Happy',
+        'Playful': 'Happy', 'Sensitive': 'Happy', 'Inspired': 'Happy', 'Open': 'Happy',
+        'Shocked': 'Surprise', 'Dismayed': 'Surprise', 'Disillusioned': 'Surprise', 'Perplexed': 'Surprise',
+        'Astonished': 'Surprise', 'Awe': 'Surprise', 'Eager': 'Surprise', 'Energetic': 'Surprise',
+        'Ridiculed': 'Fear', 'Disrespected': 'Fear', 'Alienated': 'Fear', 'Inadequate': 'Fear',
+        'Insignificant': 'Fear', 'Worthless': 'Fear', 'Inferior': 'Fear', 'Worried': 'Fear',
+        'Overwhelmed': 'Fear', 'Frightened': 'Fear', 'Terrified': 'Fear',
+        'Embarrassed': 'Anger', 'Devastated': 'Anger', 'Insecure': 'Anger', 'Jealous': 'Anger',
+        'Resentful': 'Anger', 'Violated': 'Anger', 'Furious': 'Anger', 'Enraged': 'Anger',
+        'Provoked': 'Anger', 'Hostile': 'Anger', 'Infuriated': 'Anger', 'Irritated': 'Anger',
+        'Withdrawn': 'Anger', 'Suspicious': 'Anger', 'Skeptical': 'Anger', 'Sarcastic': 'Anger',
+        'Judgmental': 'Disgust', 'Appalled': 'Disgust', 'Revolted': 'Disgust', 'Nauseated': 'Disgust',
+        'Detestable': 'Disgust', 'Horrified': 'Disgust', 'Hesitant': 'Disgust',
+        'Remorseful': 'Sad', 'Ashamed': 'Sad', 'Ignored': 'Sad', 'Victimized': 'Sad',
+        'Powerless': 'Sad', 'Vulnerable': 'Sad', 'Empty': 'Sad', 'Isolated': 'Sad',
+        'Abandoned': 'Sad', 'Apathetic': 'Sad', 'Indifferent': 'Sad'
+      };
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function handleRegex() {
+      return '^[a-z0-9._]{3,20}$';
+    }
+
+    // --- users & handles -----------------------------------------------
+
+    match /users/{uid} {
+      allow read: if true;
+      // Created only alongside a matching handles/{handle} doc in the same
+      // client transaction (see web SignInSheet/handle claim), which the
+      // handles/create rule below cross-checks against this doc.
+      allow create: if isSignedIn() && request.auth.uid == uid
+        && request.resource.data.handle is string
+        && request.resource.data.handle.matches(handleRegex())
+        && request.resource.data.storyCount == 0
+        && existsAfter(/databases/$(database)/documents/handles/$(request.resource.data.handle))
+        && getAfter(/databases/$(database)/documents/handles/$(request.resource.data.handle)).data.uid == uid;
+      allow update, delete: if false;
+    }
+
+    match /handles/{handle} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.uid
+        && handle.matches(handleRegex())
+        && existsAfter(/databases/$(database)/documents/users/$(request.auth.uid))
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.handle == handle;
+      allow update, delete: if false;
+    }
+
+    // --- stories ----------------------------------------------------------
+
+    match /stories/{storyId} {
+      allow read: if resource.data.status == 'published';
+
+      allow create: if isSignedIn()
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.word in wordFamily()
+        && request.resource.data.family == wordFamily()[request.resource.data.word]
+        && request.resource.data.status == 'published'
+        && request.resource.data.likeCount == 0
+        && request.resource.data.commentCount == 0
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 120
+        && request.resource.data.text.split(' ').size() == 6;
+
+      allow update: if false;
+      allow delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
+
+      match /likes/{likeUid} {
+        allow read: if true;
+        allow create: if isSignedIn() && request.auth.uid == likeUid;
+        allow delete: if isSignedIn() && request.auth.uid == likeUid;
+        allow update: if false;
+      }
+
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if isSignedIn()
+          && request.resource.data.authorId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() >= 1
+          && request.resource.data.text.size() <= 280;
+        allow update: if false;
+        allow delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
+
+        match /likes/{likeUid} {
+          allow read: if true;
+          allow create: if isSignedIn() && request.auth.uid == likeUid;
+          allow delete: if isSignedIn() && request.auth.uid == likeUid;
+          allow update: if false;
+        }
+      }
+    }
+
+    // --- reports ------------------------------------------------------
+
+    match /reports/{reportId} {
+      allow create: if isSignedIn()
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.storyId is string
+        && request.resource.data.reason is string
+        && request.resource.data.reason.size() <= 200;
+      allow read, update, delete: if false;
+    }
+
+    // --- server-managed collections (functions use the admin SDK, which
+    // bypasses rules; these deny all client access) --------------------
+
+    match /rateLimits/{uid} {
+      allow read, write: if false;
+    }
+  }
+}

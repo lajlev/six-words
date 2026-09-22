@@ -1,0 +1,14 @@
+node_modules/
+dist/
+lib/
+shared/dist/
+.emulator-data/
+firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+ui-debug.log
+*.local
+.env.local
+.env.production
+.DS_Store
+functions/assets/story-template.html

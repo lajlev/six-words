@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "default": "lillefar-com"
+  },
+  "targets": {
+    "lillefar-com": {
+      "hosting": {
+        "sixwords": ["sixwords-lillefar"]
+      }
+    }
+  }
+}
