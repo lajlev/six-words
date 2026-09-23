@@ -8,7 +8,7 @@ export function useCommentLike(storyId: string, commentId: string) {
   const [liked, setLiked] = useState(false);
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !storyId || !commentId) {
       setLiked(false);
       return;
     }
@@ -18,7 +18,7 @@ export function useCommentLike(storyId: string, commentId: string) {
   }, [storyId, commentId, user]);
 
   async function toggle() {
-    if (!requireAuth() || !user) return;
+    if (!requireAuth() || !user || !storyId || !commentId) return;
     const next = !liked;
     setLiked(next);
     try {

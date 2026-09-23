@@ -12,15 +12,20 @@ const MAX_LEN = 280;
 
 export function CommentSheet({ story, open, onClose }: { story: Story | null; open: boolean; onClose: () => void }) {
   const { comments } = useComments(open ? story?.id ?? null : null);
+  // Only ever render rows when we have a real story: `story` and `comments`
+  // update from separate state (a prop vs. this hook's own effect), so on
+  // close there's a render where `story` is already null but `comments`
+  // hasn't been cleared yet. Rendering CommentRow in that window with a
+  // fallback empty storyId built invalid Firestore paths like
+  // "stories/comments/{id}/likes/{uid}" and crashed.
+  const rows = story ? comments : [];
 
   return (
     <Sheet open={open} title={`${comments.length} comment${comments.length === 1 ? "" : "s"}`} onClose={onClose}>
       {story && <p className="sheet-story">{story.text}</p>}
       <ul className="list">
-        {comments.map((c) => (
-          <CommentRow key={c.id} storyId={story?.id ?? ""} comment={c} />
-        ))}
-        {comments.length === 0 && <li className="empty-state" style={{ height: "auto", padding: "24px 0" }}>No comments yet. Be the first to solve it.</li>}
+        {story && rows.map((c) => <CommentRow key={c.id} storyId={story.id} comment={c} />)}
+        {rows.length === 0 && <li className="empty-state" style={{ height: "auto", padding: "24px 0" }}>No comments yet. Be the first to solve it.</li>}
       </ul>
       {story && <CommentComposer storyId={story.id} />}
     </Sheet>
