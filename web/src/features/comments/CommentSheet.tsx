@@ -98,7 +98,7 @@ function CommentComposer({ storyId }: { storyId: string }) {
         value={text}
         maxLength={MAX_LEN}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Add a comment"
+        placeholder="Discuss the plot"
         rows={1}
       />
       <button type="submit" disabled={busy || !text.trim()}>
